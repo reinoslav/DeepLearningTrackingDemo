@@ -1,6 +1,6 @@
 import numpy as np
 
-from .attention_rnn import RATM
+from dl_tracking.attention_rnn import RATM
 
 if __name__ == '__main__':
     imsize = (120, 160)

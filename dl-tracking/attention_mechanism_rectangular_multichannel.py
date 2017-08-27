@@ -94,9 +94,19 @@ class SelectiveAttentionMechanism(object):
                                          1) * np.absolute(attention_acts[:, 3])
         gammas = np.absolute(attention_acts[:, 4])
 
-        sigmaY = np.absolute(attention_acts[:, 5]) / 2.
+        # Bugfix reinhard: attention_acts is only a 5-dim vector, therefore
+        # you can not access dimensions 6 and 7. Hopefully this is just a
+        # typo by the original authors of the code.
+
+        #sigmaY = np.absolute(attention_acts[:, 5]) / 2.
+        #deltaY = (self.imsize[0] - 1) / (self.patchsize[0] -
+        #                                 1) * np.absolute(attention_acts[:, 6])
+
+        sigmaY = np.absolute(attention_acts[:, 2]) / 2.
         deltaY = (self.imsize[0] - 1) / (self.patchsize[0] -
-                                         1) * np.absolute(attention_acts[:, 6])
+                                         1) * np.absolute(attention_acts[:, 3])
+
+        # Bugfix reinhard END
 
         # I and J contain indices into the patch,
         # A and B indices into the input image
@@ -129,9 +139,19 @@ class SelectiveAttentionMechanism(object):
         deltaX = (self.imsize[1] - 1) / \
             (self.patchsize[1] - 1) * abs(attention_acts[:, 3])
 
-        sigmaY = abs(attention_acts[:, 5]) / 2.
+        # Bugfix reinhard: attention_acts is only a 5-dim vector, therefore
+        # you can not access dimensions 6 and 7. Hopefully this is just a
+        # typo by the original authors of the code.
+
+        #sigmaY = abs(attention_acts[:, 5]) / 2.
+        #deltaY = (self.imsize[0] - 1) / \
+        #    (self.patchsize[0] - 1) * abs(attention_acts[:, 6])
+
+        sigmaY = abs(attention_acts[:, 2]) / 2.
         deltaY = (self.imsize[0] - 1) / \
-            (self.patchsize[0] - 1) * abs(attention_acts[:, 6])
+            (self.patchsize[0] - 1) * abs(attention_acts[:, 3])
+
+        # Bugfix reinhard END
 
         # I and J contain indices into the patch,
         # A and B indices into the input image

@@ -28,8 +28,8 @@ class Model(object):
             try:
                 p.set_value(newparams[p.name])
             except KeyError:
-                print 'param {0} not in dict (will not be overwritten)'.format(
-                    p.name)
+                print('param {0} not in dict (will not be overwritten)'.format(
+                    p.name))
 
     def get_params_dict(self):
         return dict([(p.name, p.get_value()) for p in self.params])
@@ -41,22 +41,22 @@ class Model(object):
     def save(self, filename):
         ext = os.path.splitext(filename)[1]
         if ext == '.h5':
-            print 'saving h5 file'
+            print('saving h5 file')
             self.save_h5(filename)
         elif ext == '.npy':
-            print 'saving npy file'
+            print('saving npy file')
             self.save_npy(filename)
         elif ext == '.npz':
-            print 'saving npz file'
+            print('saving npz file')
             self.save_npz(filename)
         else:
-            print 'unknown file extension: {}'.format(ext)
+            print('unknown file extension: {}'.format(ext))
 
     def save_h5(self, filename):
         try:
             shutil.copyfile(filename, '{}_bak'.format(filename))
         except IOError:
-            print 'could not make backup of model param file (which is normal if we haven\'t saved one until now)'
+            print('could not make backup of model param file (which is normal if we haven\'t saved one until now)')
 
         with tables.openFile(filename, 'w') as h5file:
             for p in self.params:
@@ -84,14 +84,14 @@ class Model(object):
         else:
             try:
                 new_params = np.load(filename)
-            except IOError, e:
+            except IOError as e:
                 warnings.warn('''Parameter file could not be loaded with numpy.load()!
                             Is the filename correct?\n %s''' % (e, ))
             if type(new_params) == np.ndarray:
-                print "loading npy file"
+                print("loading npy file")
                 self.updateparams(new_params)
             elif type(new_params) == np.lib.npyio.NpzFile:
-                print "loading npz file"
+                print("loading npz file")
                 self.updateparams_fromdict(new_params)
             else:
                 warnings.warn('''Parameter file loaded, but variable type not

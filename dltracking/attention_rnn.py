@@ -2,12 +2,13 @@ import numpy as np
 import theano
 from theano.printing import Print
 import theano.tensor as T
-
 theano.config.compute_test_value = 'raise'
 
-from .attention_mechanism_rectangular_multichannel import SelectiveAttentionMechanism
+from .attention_mechanism_rectangular_multichannel import (
+    SelectiveAttentionMechanism)
 from .model import Model
 from .rnn import RNN
+
 
 class RATM(Model):
     @property
@@ -18,6 +19,8 @@ class RATM(Model):
 
     def __init__(self, name, imsize, patchsize, nhid,
                  numpy_rng, eps, hids_scale,
+                 feature_network=None, input_feature_layer_name=None,
+                 metric_feature_layer_name=None,
                  nchannels=1, weight_decay=0.):
         # CALL PARENT CONSTRUCTOR TO SETUP CONVENIENCE FUNCTIONS
         # (SAVE/LOAD, ...)
@@ -31,6 +34,21 @@ class RATM(Model):
         self.hids_scale = hids_scale
         self.nchannels = nchannels
         self.weight_decay = weight_decay
+        assert hasattr(feature_network, 'forward')
+        assert hasattr(feature_network, 'load')
+        self.feature_network = feature_network
+        self.input_feature_layer_name = input_feature_layer_name
+        assert (self.input_feature_layer_name in
+                self.feature_network.layers.keys())
+        self.metric_feature_layer_name = metric_feature_layer_name
+        assert (self.metric_feature_layer_name in
+                self.feature_network.layers.keys())
+        # TODO: remove this constraint, if everything else works
+        assert (
+            list(self.feature_network.layers.keys()).index(
+                self.metric_feature_layer_name) >
+            list(self.feature_network.layers.keys()).index(
+                self.input_feature_layer_name))
 
         ftensor5 = T.TensorType(theano.config.floatX, (False,) * 5)
         self.inputs = ftensor5(name='inputs')
@@ -62,6 +80,8 @@ class RATM(Model):
         self.targets_centers_widthheight = T.concatenate((
             self.targets_XYs, self.targets_widthheight), axis=2)
 
+        self.nin = self.feature_network.layers[
+            self.input_feature_layer_name].outputs_shape[1]
         self.rnn = RNN(nin=self.nin, nout=10, nhid=self.nhid,
                        numpy_rng=self.numpy_rng, scale=hids_scale)
 
@@ -101,6 +121,14 @@ class RATM(Model):
                 self.imsize[0], self.imsize[1])),
             attention_acts=self.targets_params_reshape)
 
+        self.targets_features = self.feature_network.forward_from_to(
+            self.targets_patches,
+            to_layer_name=self.metric_feature_layer_name
+        )
+        self.targets_features = self.targets_features.reshape((
+            self.nframes, self.batchsize,
+            T.prod(self.targets_features.shape[1:])))
+
         self.bread_init = T.concatenate((
             # center x,y
             self.targets_centers_widthheight[
@@ -135,7 +163,7 @@ class RATM(Model):
                 x_t, h_tm1, wread, bread)
             features_t = self.feature_network.forward_from_to(
                 patches_t,
-                from_layer_name=self.feature_network.layers.keys()[0],
+                from_layer_name=list(self.feature_network.layers.keys())[0],
                 to_layer_name=self.input_feature_layer_name)
             h_t, o_t = self.rnn.step(features_t, h_tm1)
             h_t_norm = T.sqrt(T.sum(h_t**2, axis=-1))
@@ -165,13 +193,13 @@ class RATM(Model):
             gY.dimshuffle(0, 1, 'x')), axis=2)
 
         # get index of layer after feature layer
-        after_feat_layer_idx = self.feature_network.layers.keys().index(
+        after_feat_layer_idx = list(self.feature_network.layers.keys()).index(
             self.input_feature_layer_name) + 1
 
         self.attention_features = self.feature_network.forward_from_to(
             self.features.reshape((T.prod(self.features.shape[:2]),
                                    self.features.shape[2])),
-            from_layer_name=self.feature_network.layers.keys()[
+            from_layer_name=list(self.feature_network.layers.keys())[
                 after_feat_layer_idx],
             to_layer_name=self.metric_feature_layer_name
         ).reshape((

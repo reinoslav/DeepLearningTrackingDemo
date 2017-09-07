@@ -26,10 +26,10 @@ class RNN(Model):
         self.batchsize = self.inputs.shape[0]
 
         self.inputs_frames = self.inputs.reshape((
-            self.batchsize, self.inputs.shape[1] / nin,
+            self.batchsize, T.cast(self.inputs.shape[1] / nin, "int32"),
             nin)).dimshuffle(1, 0, 2)
         self.targets_frames = self.targets.reshape((
-            self.batchsize, self.targets.shape[1] / nout,
+            self.batchsize, T.cast(self.targets.shape[1] / nout, "int32"),
             nout)).dimshuffle(1, 0, 2)
         self.masks_frames = self.masks.T
 

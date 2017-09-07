@@ -24,7 +24,7 @@ class HumanConvNet(Model):
 
         self.inputs = T.ftensor4('inputs')
         self.inputs.tag.test_value = numpy_rng.randn(
-            self.batchsize, 1, 28, 28).astype(np.float32)
+            self.batchsize, 1, 7, 7).astype(np.float32)
 
         self.targets = T.ivector('targets')
         self.targets.tag.test_value = numpy_rng.randint(
@@ -36,7 +36,7 @@ class HumanConvNet(Model):
             rng=self.numpy_rng,
             inputs=self.inputs,
             filter_shape=(128, 1, 5, 5),
-            image_shape=(None, 1, 28, 28),
+            image_shape=(None, 1, 7, 7),
             name='conv0',
             pad=2
         )

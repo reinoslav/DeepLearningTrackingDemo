@@ -28,7 +28,7 @@ class MiniBatchGenerator:
 
     def nbatches(self):
         if self.batchsize is not None:
-            return len(self.video_indices) / self.batchsize
+            return int(len(self.video_indices) / self.batchsize)
 
     def shuffle(self):
         ...

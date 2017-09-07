@@ -58,9 +58,9 @@ class Model(object):
         except IOError:
             print('could not make backup of model param file (which is normal if we haven\'t saved one until now)')
 
-        with tables.openFile(filename, 'w') as h5file:
+        with tables.open_file(filename, 'w') as h5file:
             for p in self.params:
-                h5file.createArray(h5file.root, p.name, p.get_value())
+                h5file.create_array(h5file.root, p.name, p.get_value())
                 h5file.flush()
 
     def save_npy(self, filename):
@@ -70,9 +70,9 @@ class Model(object):
         np.savez(filename, **(self.get_params_dict()))
 
     def load_h5(self, filename):
-        h5file = tables.openFile(filename, 'r')
+        h5file = tables.open_file(filename, 'r')
         new_params = {}
-        for p in h5file.listNodes(h5file.root):
+        for p in h5file.list_nodes(h5file.root):
             new_params[p.name] = p.read()
         self.updateparams_fromdict(new_params)
         h5file.close()

@@ -18,10 +18,10 @@ if __name__ == '__main__':
     theano_rng = RandomStreams(1)
     numpy_rng = np.random.RandomState(1)
 
-    dataset = BouncingBallsDataset(number_of_videos = 1000, number_of_frames = 32, image_resolution = 30, number_of_balls = 1)
+    dataset = BouncingBallsDataset(number_of_videos = 1000, number_of_frames = 32, image_resolution = 20, number_of_balls = 1)
 
     batchsize = 16
-    loadsize = 128
+    loadsize = 100
 
     train_data_provider = MiniBatchGenerator(dataset, loadsize, minlen=5, maxlen=5)
     print('fetching 100 samples from training set for approx of train IoUs...')
@@ -47,8 +47,8 @@ if __name__ == '__main__':
         theano_rng=theano_rng, batchsize=batchsize)
     feature_network.mode.set_value(np.uint8(1))
 
-    patchsize = (28, 28)
-    imsize = (30, 30)
+    patchsize = (7, 7)
+    imsize = (20, 20)
     nhid = 32
 
     print("instantiating model...")
@@ -215,9 +215,10 @@ if __name__ == '__main__':
         numloads=train_data_provider.nbatches())
     print("done (with instantiating trainer)")
 
-'''
+    maxlen = 5
+
     print("starting training...")
-    for epoch in range(500):
+    for epoch in range(200):
         # increase maximum length of training sequences by 1 every 20 epochs
         train_data_provider.maxlen = min(epoch // 20 + maxlen, 30)
         trainer.step()
@@ -230,70 +231,49 @@ if __name__ == '__main__':
         # compute test meanIoU
         test_IoUs.append(compute_avg_IoU(**test_data))
 
-        with tables.openFile('ious_kth{0:02d}left_out.h5'.format(args.test_person),
-                             'w') as h5file:
-            h5file.createArray(h5file.root, 'train_IoUs', np.array(train_IoUs))
-            h5file.createArray(h5file.root, 'val_IoUs', np.array(val_IoUs))
-            h5file.createArray(h5file.root, 'test_IoUs', np.array(test_IoUs))
-            h5file.createArray(h5file.root, 'trainer_costs', trainer.costs)
+        with tables.open_file('ious_kthleft_out.h5', 'w') as h5file:
+            h5file.create_array(h5file.root, 'train_IoUs', np.array(train_IoUs))
+            h5file.create_array(h5file.root, 'val_IoUs', np.array(val_IoUs))
+            h5file.create_array(h5file.root, 'test_IoUs', np.array(test_IoUs))
+            h5file.create_array(h5file.root, 'trainer_costs', trainer.costs)
 
         if best_val_IoU < val_IoUs[-1]:
             best_val_IoU = val_IoUs[-1]
             best_val_IoU_epoch = epoch + 1
-            model.save(
-                'attention_model_kth_{0:02d}left_out_val_best.h5'.format(
-                    args.test_person))
+            model.save('attention_model_kth_left_out_val_best.h5')
 
-        print
-        'train IoU: {0:f}'.format(train_IoUs[-1])
-        print
-        'val IoU: {0:f} (best so far {1} in epoch {2})'.format(
-            val_IoUs[-1], best_val_IoU, best_val_IoU_epoch)
-        print
-        'test IoU: {0:f}'.format(test_IoUs[-1])
+        print('train IoU: {0:f}'.format(train_IoUs[-1]))
+        print('val IoU: {0:f} (best so far {1} in epoch {2})'.format(val_IoUs[-1], best_val_IoU, best_val_IoU_epoch))
+        print('test IoU: {0:f}'.format(test_IoUs[-1]))
 
         plt.clf()
-        plt.plot(range(epoch + 2), train_IoUs, c='g',
-                 label='Avg. IoU on Train')
-        plt.plot(range(epoch + 2), val_IoUs, c='b',
-                 label='Avg. IoU on Val (person {0})'.format(val_person))
-        plt.scatter([best_val_IoU_epoch], [best_val_IoU],
-                    marker='*', c='b')
+        plt.plot(range(epoch + 2), train_IoUs, c='g', label='Avg. IoU on Train')
+        plt.plot(range(epoch + 2), val_IoUs, c='b', label='Avg. IoU on Val')
+        plt.scatter([best_val_IoU_epoch], [best_val_IoU], marker='*', c='b')
         plt.xlabel('epoch')
         plt.ylabel('avg. IoU')
-        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                   ncol=2, mode="expand", borderaxespad=0.)
+        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
         plt.xlim(0, epoch + 2)
-        plt.savefig('vis/train_val_IoUs_{0:02d}left_out.png'.format(
-            args.test_person))
-        plt.plot(range(epoch + 2), test_IoUs, c='r',
-                 label='Avg. IoU on Test (person {0})'.format(args.test_person))
-        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                   ncol=2, mode="expand", borderaxespad=0.,
-                   fontsize=9)
+        plt.savefig('train_val_IoUs_left_out.png')
+        plt.plot(range(epoch + 2), test_IoUs, c='r', label='Avg. IoU on Test')
+        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0., fontsize=9)
         plt.xlim(0, epoch + 2)
-        plt.savefig('vis/train_val_test_IoUs{0:02d}left_out.png'.format(
-            args.test_person))
+        plt.savefig('train_val_test_IoUsleft_out.png')
 
         plt.clf()
         plt.plot(np.arange(1, epoch + 2), trainer.costs, label='Cost on Train')
         plt.xlabel('epoch')
         plt.ylabel('cost')
-        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                   ncol=2, mode="expand", borderaxespad=0.)
-        plt.savefig('vis/train_loss_plot_{0:02d}left_out.png'.format(
-            args.test_person))
+        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
+        plt.savefig('train_loss_plot_left_out.png')
 
-        model.save('attention_model_kth_trainlen{0:03d}_{1:02d}left_out.h5'.format(
-            train_data_provider.maxlen, args.test_person))
-        model.save('attention_model_kth_{0:02d}left_out.h5'.format(
-            args.test_person))
+        model.save('attention_model_kth_trainlen{0:03d}_left_out.h5'.format(train_data_provider.maxlen))
+        model.save('attention_model_kth_left_out.h5')
+
         if (epoch + 1) % 1 == 0:
-            print
-            'visualizing...'
-            visualize('vis/tracking_kth_{0:02d}left_out.pdf'.format(
-                args.test_person))
-            print
-            'done (with visualizing)'
+            print('visualizing...')
+            visualize('tracking_kth_left_out.pdf')
+            print('done (with visualizing)')
+
     print("done (with training)")
-'''
+
